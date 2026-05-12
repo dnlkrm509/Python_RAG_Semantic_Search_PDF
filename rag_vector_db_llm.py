@@ -148,59 +148,107 @@
 
 # As I am using a free tier hosting provider I have to get everything
 # (Embedding, LLM) from API and remove heavy parts like faiss-cpu torck, sentence-transformer
-import os
-from pypdf import PdfReader
-from langchain_groq import ChatGroq
 from dotenv import load_dotenv
+import os
+
+from langchain_community.document_loaders import PyPDFLoader
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_groq import ChatGroq
 
 load_dotenv()
 
 
 class RAGService:
+
     def __init__(self, pdf_path: str):
+
         self.pdf_path = pdf_path
+
         self.llm = ChatGroq(
             groq_api_key=os.getenv("GROQ_API_KEY"),
             model_name="llama-3.3-70b-versatile"
         )
 
-        self.chunks = self._load_and_split_pdf()
+        print("Loading PDF...")
 
-    def _load_and_split_pdf(self):
-        reader = PdfReader(self.pdf_path)
-        text = ""
+        loader = PyPDFLoader(self.pdf_path)
 
-        for page in reader.pages:
-            text += page.extract_text() or ""
+        pages = loader.load()
 
-        return text.split("\n\n")
+        print(f"Loaded {len(pages)} pages")
+
+        print("Splitting document into chunks...")
+
+        text_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=1024,
+            chunk_overlap=256
+        )
+
+        self.chunks = text_splitter.split_documents(pages)
+
+        print(f"Created {len(self.chunks)} chunks")
 
     def _get_relevant_chunks(self, question: str, k: int = 4):
+
         question_words = set(question.lower().split())
-        scored = []
+
+        scored_chunks = []
 
         for chunk in self.chunks:
-            chunk_lower = chunk.lower()
-            score = sum(1 for w in question_words if w in chunk_lower)
-            scored.append((score, chunk))
 
-        scored.sort(reverse=True, key=lambda x: x[0])
-        return [c for _, c in scored[:k]]
+            chunk_text = chunk.page_content.lower()
+
+            chunk_words = set(chunk_text.split())
+
+            score = len(question_words & chunk_words)
+
+            scored_chunks.append(
+                (score, chunk.page_content)
+            )
+
+        scored_chunks.sort(
+            reverse=True,
+            key=lambda x: x[0]
+        )
+
+        return [
+            chunk for _, chunk in scored_chunks[:k]
+        ]
 
     def ask(self, question: str):
-        context = "\n\n".join(self._get_relevant_chunks(question))
+
+        relevant_chunks = self._get_relevant_chunks(
+            question=question,
+            k=4
+        )
+
+        context = "\n\n".join(relevant_chunks)
+
+        # Prevent massive prompts
+        context = context[:4000]
+
+        print(f"Context length: {len(context)}")
 
         prompt = f"""
-        You are a helpful assistant.
+You are a helpful assistant.
 
-        Use the context below to answer the question.
+Answer the question using ONLY the context below.
 
-        Context:
-        {context}
+Context:
+{context}
 
-        Question:
-        {question}
-        """
+Question:
+{question}
+"""
 
-        response = self.llm.invoke(prompt)
-        return response.content
+        try:
+
+            response = self.llm.invoke(prompt)
+
+            return response.content
+
+        except Exception as e:
+
+            print(f"Groq Error: {e}")
+
+            return "Error generating response"
