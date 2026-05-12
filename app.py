@@ -62,101 +62,127 @@
 
 
 
+# from fastapi import FastAPI
+# from fastapi.middleware.cors import CORSMiddleware
+# from pydantic import BaseModel
+# from rag_vector_db_llm import Search_RAG_LLM
+# import warnings
+# import logging
+# import os
+# import torch
+# import re
+
+# warnings.filterwarnings("ignore")
+
+# logging.getLogger("transformers").setLevel(logging.ERROR)
+# logging.getLogger("huggingface_hub").setLevel(logging.ERROR)
+
+# from fastapi import FastAPI
+# from fastapi.middleware.cors import CORSMiddleware
+
+# app = FastAPI(title="RAG PDF QA API")
+
+# # Enable CORS
+# app.add_middleware(
+#     CORSMiddleware,
+#     allow_origins=["*"],  # or ["http://127.0.0.1:5500"]
+#     allow_credentials=True,
+#     allow_methods=["*"],
+#     allow_headers=["*"],
+# )
+
+# device = "cuda" if torch.cuda.is_available() else "cpu"
+
+# path = os.path.join(os.getcwd(), "1706.03762v7.pdf")
+
+# search_obj = None
+
+
+# def load_model():
+
+#     global search_obj
+#     global qa_chain
+
+#     if os.path.exists("./faiss_index"):
+#         search_obj = Search_RAG_LLM(device=device)
+#     else:
+#         search_obj = Search_RAG_LLM(path, device=device)
+
+
+# @app.on_event("startup")
+# def startup_event():
+#     load_model()
+
+
+# class QuestionRequest(BaseModel):
+#     question: str
+
+
+# @app.get("/")
+# def home():
+#     return {
+#         "message": "RAG PDF Question Answering API is running"
+#     }
+
+
+# @app.post("/search")
+# def ask_question(request: QuestionRequest):
+
+#     question = request.question.strip()
+
+#     if not question:
+#         return {
+#             "error": "Question cannot be empty"
+#         }
+
+#     result = search_obj.get_result(question)
+
+#     return {
+#         "question": question,
+#         "answer": re.sub('\n', '', result['result'])
+#         # "answer": re.sub('\n', '', result['result'].split('[/INST]')[1])
+#     }
+
+
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from rag_vector_db_llm import Search_RAG_LLM
-import warnings
-import logging
 import os
-import torch
-import re
 
-warnings.filterwarnings("ignore")
+from rag_vector_db_llm import RAGService
 
-logging.getLogger("transformers").setLevel(logging.ERROR)
-logging.getLogger("huggingface_hub").setLevel(logging.ERROR)
+app = FastAPI(title="Groq RAG API")
 
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-
-app = FastAPI(title="RAG PDF QA API")
-
-# Enable CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # or ["http://127.0.0.1:5500"]
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# -----------------------------
-# Device configuration
-# -----------------------------
-device = "cuda" if torch.cuda.is_available() else "cpu"
+pdf_path = os.path.join(os.getcwd(), "1706.03762v7.pdf")
+rag = RAGService(pdf_path)
 
-# -----------------------------
-# PDF path
-# -----------------------------
-path = os.path.join(os.getcwd(), "1706.03762v7.pdf")
-
-# -----------------------------
-# Load model once on startup
-# -----------------------------
-search_obj = None
-
-
-def load_model():
-
-    global search_obj
-    global qa_chain
-
-    if os.path.exists("./faiss_index"):
-        search_obj = Search_RAG_LLM(device=device)
-    else:
-        search_obj = Search_RAG_LLM(path, device=device)
-
-
-@app.on_event("startup")
-def startup_event():
-    load_model()
-
-
-# -----------------------------
-# Request schema
-# -----------------------------
 class QuestionRequest(BaseModel):
     question: str
 
-
-# -----------------------------
-# Health check endpoint
-# -----------------------------
 @app.get("/")
 def home():
-    return {
-        "message": "RAG PDF Question Answering API is running"
-    }
+    return {"message": "Groq RAG API running"}
 
-
-# -----------------------------
-# Ask question endpoint
-# -----------------------------
 @app.post("/search")
-def ask_question(request: QuestionRequest):
+def search(request: QuestionRequest):
 
     question = request.question.strip()
 
     if not question:
-        return {
-            "error": "Question cannot be empty"
-        }
+        return {"error": "Question cannot be empty"}
 
-    result = search_obj.get_result(question)
+    answer = rag.ask(question)
 
     return {
         "question": question,
-        "answer": re.sub('\n', '', result['result'])
-        # "answer": re.sub('\n', '', result['result'].split('[/INST]')[1])
+        "answer": answer
     }
