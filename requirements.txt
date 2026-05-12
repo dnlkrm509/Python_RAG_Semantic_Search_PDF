@@ -1,17 +1,17 @@
-fastapi==0.115.12
-uvicorn[standard]==0.34.2
+fastapi
+uvicorn[standard]
 
-python-dotenv==1.1.0
+python-dotenv
 
-langchain==0.3.25
-langchain-community==0.3.24
-langchain-core==0.3.60
-langchain-classic==1.0.0
-langchain-groq==0.3.2
+langchain
+langchain-community
+langchain-core
+langchain-classic
+langchain-groq
 
-sentence-transformers==4.1.0
-faiss-cpu==1.13.2
+sentence-transformers
+faiss-cpu
 
-pypdf==5.5.0
+pypdf
 
-torch==2.11.0
+torch
