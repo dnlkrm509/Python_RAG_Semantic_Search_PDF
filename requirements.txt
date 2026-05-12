@@ -21,4 +21,6 @@ fastapi
 uvicorn[standard]
 python-dotenv
 langchain-groq
+langchain-community
+langchain-text-splitters
 pypdf
