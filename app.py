@@ -157,5 +157,6 @@ def ask_question(request: QuestionRequest):
 
     return {
         "question": question,
-        "answer": re.sub('\n', '', result['result'].split('[/INST]')[1])
+        "answer": re.sub('\n', '', result['result'])
+        # "answer": re.sub('\n', '', result['result'].split('[/INST]')[1])
     }

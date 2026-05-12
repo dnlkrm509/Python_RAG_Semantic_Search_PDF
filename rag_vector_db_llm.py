@@ -1,4 +1,7 @@
+from dotenv import load_dotenv
 import os
+
+load_dotenv()
 
 # Load the pdf file and split the text into chunks
 from langchain_community.document_loaders import PyPDFLoader
@@ -11,12 +14,17 @@ from langchain_community.vectorstores import FAISS
 # Create ChatPrompt template to fed to LLM
 from langchain_core.prompts import ChatPromptTemplate
 
-# Download the HuggingFace transformer pipeline from the quantized LLM
-from transformers import AutoTokenizer, AutoModelForCausalLM
-from transformers import pipeline, BitsAndBytesConfig
 
-# Convert the "HuggingFace transformer pipeline" to the "HuggingFace langchain pipeline" of quantized LLM model
-from langchain_community.llms.huggingface_pipeline import HuggingFacePipeline
+# Using GrogCloud makes it much easier to deploy on free providers because llms requires a lot of RAM
+from langchain_groq import ChatGroq
+
+
+# # Download the HuggingFace transformer pipeline from the quantized LLM
+# from transformers import AutoTokenizer, AutoModelForCausalLM
+# from transformers import pipeline, BitsAndBytesConfig
+
+# # Convert the "HuggingFace transformer pipeline" to the "HuggingFace langchain pipeline" of quantized LLM model
+# from langchain_community.llms.huggingface_pipeline import HuggingFacePipeline
 
 # As this is a QA task for langchain
 from langchain_classic.chains.retrieval_qa.base import RetrievalQA
@@ -76,7 +84,7 @@ class Search_RAG_LLM:
     
     def load_model(self, k):
         prompt = """
-        [INST]
+        # [INST]
         You are a helpful assistant.
 
         Use the following context to answer the question.
@@ -86,40 +94,45 @@ class Search_RAG_LLM:
 
         Question:
         {question}
-        [/INST]
+        # [/INST]
         """
 
         prompt = ChatPromptTemplate.from_template(prompt)
         
-        bnb_config = BitsAndBytesConfig(
-            load_in_4bit=True,
-            bnb_4bit_quant_type="nf4",
+        # bnb_config = BitsAndBytesConfig(
+        #     load_in_4bit=True,
+        #     bnb_4bit_quant_type="nf4",
+        # )
+
+        # print("Loading tokenizer...")
+        # tokenizer = AutoTokenizer.from_pretrained("mistralai/Mistral-7B-Instruct-v0.2")
+        # print("Tokenizer loaded")
+
+        # print("Loading model...")
+        # model = AutoModelForCausalLM.from_pretrained(
+        #     "mistralai/Mistral-7B-Instruct-v0.2",
+        #     quantization_config=bnb_config,
+        #     # device_map="auto"
+        # )
+        # print("Model loaded")
+
+        # pipe = pipeline(
+        #     "text-generation",
+        #     model=model,
+        #     tokenizer=tokenizer,
+        #     max_new_tokens=1000,
+        # )
+
+        # lc_pipeline = HuggingFacePipeline(pipeline=pipe)
+
+        llm = ChatGroq(
+            groq_api_key=os.getenv('GROQ_API_KEY'),
+            model_name="llama-3.3-70b-versatile"
         )
-
-        print("Loading tokenizer...")
-        tokenizer = AutoTokenizer.from_pretrained("mistralai/Mistral-7B-Instruct-v0.2")
-        print("Tokenizer loaded")
-
-        print("Loading model...")
-        model = AutoModelForCausalLM.from_pretrained(
-            "mistralai/Mistral-7B-Instruct-v0.2",
-            quantization_config=bnb_config,
-            # device_map="auto"
-        )
-        print("Model loaded")
-
-        pipe = pipeline(
-            "text-generation",
-            model=model,
-            tokenizer=tokenizer,
-            max_new_tokens=1000,
-        )
-
-        lc_pipeline = HuggingFacePipeline(pipeline=pipe)
 
         print("Loading qa_chain...")
         qa_chain = RetrievalQA.from_chain_type(
-            llm=lc_pipeline,
+            llm=llm,# llm=lc_pipeline,
             retriever=self.vector_db.as_retriever(search_kwargs={"k": k}),
             return_source_documents=True,
             chain_type_kwargs={"prompt": prompt}
