@@ -148,6 +148,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+
 import os
 
 from rag_vector_db_llm import RAGService
@@ -162,15 +163,37 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-pdf_path = os.path.join(os.getcwd(), "1706.03762v7.pdf")
-rag = RAGService(pdf_path)
+pdf_path = os.path.join(
+    os.getcwd(),
+    "1706.03762v7.pdf"
+)
+
+rag = None
+
+
+@app.on_event("startup")
+def startup_event():
+
+    global rag
+
+    print("Initializing RAG service...")
+
+    rag = RAGService(pdf_path)
+
+    print("RAG service initialized")
+
 
 class QuestionRequest(BaseModel):
     question: str
 
+
 @app.get("/")
 def home():
-    return {"message": "Groq RAG API running"}
+
+    return {
+        "message": "Groq RAG API running"
+    }
+
 
 @app.post("/search")
 def search(request: QuestionRequest):
@@ -178,7 +201,10 @@ def search(request: QuestionRequest):
     question = request.question.strip()
 
     if not question:
-        return {"error": "Question cannot be empty"}
+
+        return {
+            "error": "Question cannot be empty"
+        }
 
     answer = rag.ask(question)
 
