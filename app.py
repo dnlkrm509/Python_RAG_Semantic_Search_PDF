@@ -168,9 +168,6 @@ pdf_path = os.path.join(
     "1706.03762v7.pdf"
 )
 
-rag = None
-
-
 @app.on_event("startup")
 async def startup_event():
 
@@ -178,7 +175,7 @@ async def startup_event():
 
     print("Initializing RAG service...")
 
-    rag = RAGService(pdf_path)
+    app.state.rag = RAGService(pdf_path)
 
     print("RAG service initialized")
 
@@ -206,7 +203,7 @@ async def search(request: QuestionRequest):
             "error": "Question cannot be empty"
         }
 
-    answer = await rag.ask(question)
+    answer = await app.state.rag.ask(question)
 
     return {
         "question": question,
