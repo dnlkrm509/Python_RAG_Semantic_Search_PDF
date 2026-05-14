@@ -179,6 +179,7 @@ async def startup_event():
 
     print("RAG service initialized")
 
+app.state.rag = RAGService(pdf_path)
 
 class QuestionRequest(BaseModel):
     question: str
