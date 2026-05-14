@@ -184,7 +184,7 @@ class QuestionRequest(BaseModel):
     question: str
 
 
-@app.get("/", methods=["GET", "HEAD"])
+@app.get("/")
 def home():
 
     return {
