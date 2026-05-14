@@ -154,6 +154,7 @@ import os
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_groq import ChatGroq
+from fastapi.concurrency import run_in_threadpool
 
 load_dotenv()
 
@@ -215,7 +216,7 @@ class RAGService:
             chunk for _, chunk in scored_chunks[:k]
         ]
 
-    def ask(self, question: str):
+    async def ask(self, question: str):
 
         relevant_chunks = self._get_relevant_chunks(
             question=question,
@@ -230,20 +231,23 @@ class RAGService:
         print(f"Context length: {len(context)}")
 
         prompt = f"""
-You are a helpful assistant.
+        You are a helpful assistant.
 
-Answer the question using ONLY the context below.
+        Answer the question using ONLY the context below.
 
-Context:
-{context}
+        Context:
+        {context}
 
-Question:
-{question}
-"""
+        Question:
+        {question}
+        """
 
         try:
 
-            response = self.llm.invoke(prompt)
+            response = await run_in_threadpool(
+                self.llm.invoke,
+                prompt
+            )
 
             return response.content
 

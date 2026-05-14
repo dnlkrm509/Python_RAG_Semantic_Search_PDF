@@ -172,13 +172,13 @@ rag = None
 
 
 @app.on_event("startup")
-def startup_event():
+async def startup_event():
 
     global rag
 
     print("Initializing RAG service...")
 
-    rag = RAGService(pdf_path)
+    rag = await RAGService(pdf_path)
 
     print("RAG service initialized")
 
@@ -196,7 +196,7 @@ def home():
 
 
 @app.post("/search")
-def search(request: QuestionRequest):
+async def search(request: QuestionRequest):
 
     question = request.question.strip()
 
@@ -206,7 +206,7 @@ def search(request: QuestionRequest):
             "error": "Question cannot be empty"
         }
 
-    answer = rag.ask(question)
+    answer = await rag.ask(question)
 
     return {
         "question": question,
