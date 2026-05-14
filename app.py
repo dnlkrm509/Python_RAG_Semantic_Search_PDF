@@ -178,7 +178,7 @@ async def startup_event():
 
     print("Initializing RAG service...")
 
-    rag = await RAGService(pdf_path)
+    rag = RAGService(pdf_path)
 
     print("RAG service initialized")
 
