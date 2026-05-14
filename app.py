@@ -168,16 +168,19 @@ pdf_path = os.path.join(
     "1706.03762v7.pdf"
 )
 
-@app.on_event("startup")
-async def startup_event():
+# @app.on_event("startup")
+# async def startup_event():
 
-    global rag
+    #global rag
 
-    print("Initializing RAG service...")
+    #print("Initializing RAG service...")
 
-    app.state.rag = RAGService(pdf_path)
+    #app.state.rag = RAGService(pdf_path)
 
-    print("RAG service initialized")
+    #print("RAG service initialized")
+
+
+app.state.rag = None
 
 class QuestionRequest(BaseModel):
     question: str
@@ -194,10 +197,17 @@ def home():
 @app.post("/search")
 async def search(request: QuestionRequest):
 
+    if app.state.rag is None:
+
+        print("Initializing RAG service...")
+
+        app.state.rag = RAGService(pdf_path)
+
+        print("RAG service initialized")
+
     question = request.question.strip()
 
     if not question:
-
         return {
             "error": "Question cannot be empty"
         }
