@@ -150,6 +150,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 import os
+import uvicorn
 
 from rag_vector_db_llm import RAGService
 
@@ -218,3 +219,15 @@ async def search(request: QuestionRequest):
         "question": question,
         "answer": answer
     }
+    
+    if __name__ == "__main__":
+
+    uvicorn.run(
+
+        "app:app",
+
+        host="0.0.0.0",
+
+        port=int(os.environ.get("PORT", 10000))
+
+    )
